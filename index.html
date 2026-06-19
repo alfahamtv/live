@@ -1,126 +1,52 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Alfaham Live</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Alfaham Sat</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{background:black;font-family:'Cairo',sans-serif;color:white;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+        .player-container{width:100%;background:black;flex-shrink:0;aspect-ratio:16/9;position:relative;}
+        video, #youtubeIframe{width:100%;height:100%;background:black;outline:none;border:none;}
+        
+        .channels-container{background:#1a1a1a;flex-grow:1;padding:8px;overflow-y:auto;}
+        .channels-grid{display:flex;flex-direction:column;gap:4px;}
+        
+        .channel-card{background:#2a2a2a;border-radius:6px;padding:8px 12px;cursor:pointer;border:1px solid #3a3a3a;color:white;font-size:14px;text-align:right;display:flex;align-items:center;gap:8px;}
+        .channel-number{display:inline-flex;align-items:center;justify-content:center;background:#444;color:#fff;font-size:12px;font-weight:600;width:22px;height:22px;border-radius:4px;flex-shrink:0;}
+        .channel-card:hover{background:#3a3a3a;}
+        .channel-card.active{border-right:3px solid white;background:#3a3a3a;}
+        .channel-card.active .channel-number{background:#e74c3c;}
+        .channel-name{flex:1;}
 
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@700&display=swap');
-
-*{box-sizing:border-box}
-html,body{
-  margin:0;
-  padding:0;
-  width:100%;
-  height:100%;
-  font-family:'Cairo',sans-serif;
-  background:#000;
-}
-
-.wrapper{
-  width:100%;
-  max-width:1100px;
-  padding:10px;
-  margin:auto;
-}
-
-.grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
-  gap:12px;
-  justify-items:center;
-}
-
-.card{
-  background:rgba(255,255,255,.92);
-  border-radius:10px;
-  padding:4px;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  cursor:pointer;
-  width:100%;
-  max-width:180px;
-  border:1px solid rgba(0,0,0,0.2);
-  transition:transform 0.2s;
-}
-
-.card:hover {
-  transform:scale(1.02);
-  box-shadow:0 4px 8px rgba(255,255,255,0.2);
-}
-
-.card img{
-  width:100%;
-  aspect-ratio:16/9;
-  object-fit:cover;
-  border-radius:8px;
-}
-
-.card-title{
-  margin-top:4px;
-  font-size:13px;
-  color:#000;
-  text-align:center;
-  font-weight:700;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  line-height:1.2;
-  padding:2px 0;
-}
-
-#playerPage{
-  position:fixed;
-  top:0;
-  left:0;
-  right:0;
-  bottom:0;
-  width:100%;
-  height:100vh;
-  background:#000;
-  display:none;
-  z-index:9999;
-  overflow:hidden;
-}
-
-#youtubeFrame{
-  width:100%;
-  height:100%;
-  border:none;
-  position:relative;
-  z-index:1;
-}
-
-#ytPoster{
-  position:absolute;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  z-index:2;
-  display:none;
-}
-</style>
+        .quality-hq-btn {position: absolute;bottom: 65px;right: 10px;background: rgba(0,0,0,0.4);color: white;border: 1px solid rgba(255,255,255,0.1);border-radius: 4px;padding: 5px 12px;font-size: 12px;cursor: pointer;z-index: 1000;display: none;transition: opacity 0.3s;}
+        
+        #qualityMenu {position: absolute;bottom: 65px;right: 65px;background: rgba(0,0,0,0.7);border: 1px solid rgba(255,255,255,0.1);border-radius: 4px;display: none;z-index: 1000;min-width: 70px;}
+        .quality-option {padding: 8px 12px;cursor: pointer;font-size: 12px;text-align: center;border-bottom: 1px solid rgba(255,255,255,0.1);display: flex;align-items: center;justify-content: center;gap: 5px;}
+        .quality-option:hover {background: rgba(255,255,255,0.2);}
+        
+        .dot {width: 6px;height: 6px;background: #e74c3c;border-radius: 50%;display: none;}
+        .quality-option.selected .dot {display: block;}
+    </style>
 </head>
-
-<body>
-
-<div class="wrapper" id="home">
-  <div class="grid" id="channelsGrid">
+<body onmousemove="showControls()" ontouchstart="showControls()">
+    <div class="player-container" id="playerContainer">
+        <video id="video" playsinline controls crossorigin="anonymous"></video>
+        <button class="quality-hq-btn" id="qualityHqBtn">HQ</button>
+        <div id="qualityMenu"></div>
     </div>
-</div>
+    <div class="channels-container">
+        <div class="channels-grid" id="channelsList"></div>
+    </div>
 
-<div id="playerPage">
-  <img id="ytPoster">
-  <iframe id="youtubeFrame" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-</div>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script>
+        // جميع القنوات المضافة
+        const channelsData = `
 
-<script>
-// أضف القنوات هنا: الاسم في سطر، والرابط في السطر الذي يليه
-const channelsData = `
+
 القران الكريم
 https://www.youtube.com/watch?v=afw9SYnqGPs
 الرقية الشرعية
@@ -345,76 +271,96 @@ https://www.youtube.com/watch?v=wP7A5oplSWg
 https://www.youtube.com/watch?v=5zkcrzlN10o
 
 
-
 `;
 
-const grid = document.getElementById("channelsGrid");
+        const playerContainer = document.getElementById('playerContainer');
+        const video = document.getElementById('video');
+        const list = document.getElementById('channelsList');
+        const qualityBtn = document.getElementById('qualityHqBtn');
+        const qualityMenu = document.getElementById('qualityMenu');
+        let hls = null;
+        let hideTimeout;
 
-function getYouTubeId(url){
-  const regex = /(?:youtube\.com\/(?:.*v=|live\/)|youtu\.be\/)([^&?/]+)/;
-  const match = url.match(regex);
-  return match ? match[1] : null;
-}
+        function getYouTubeID(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
 
-// توليد الكروت من النص
-const lines = channelsData.trim().split('\n').filter(l => l.trim() !== "");
-for (let i = 0; i < lines.length; i += 2) {
-    const title = lines[i].trim();
-    const stream = lines[i+1]?.trim();
-    if (title && stream) {
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.dataset.stream = stream;
-        card.dataset.title = title;
-        
-        const ytId = getYouTubeId(stream);
-        const img = ytId ? `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg` : '';
-        card.innerHTML = `<img src="${img}"><div class="card-title">${title}</div>`;
-        grid.appendChild(card);
-    }
-}
+        function showControls() {
+            if (qualityBtn.style.display !== 'none') {
+                qualityBtn.style.opacity = '1';
+                clearTimeout(hideTimeout);
+                hideTimeout = setTimeout(() => { qualityBtn.style.opacity = '0'; }, 3000);
+            }
+        }
 
-// الكود الأصلي للتشغيل والتحكم
-const cards = document.querySelectorAll('.card');
-const playerPage = document.getElementById("playerPage");
-const youtubeFrame = document.getElementById("youtubeFrame");
-const ytPoster = document.getElementById("ytPoster");
-const home = document.getElementById("home");
+        function playChannel(url, card) {
+            if (hls) { hls.destroy(); hls = null; }
+            qualityMenu.style.display = 'none';
+            qualityBtn.style.display = 'none';
+            const existingIframe = document.getElementById('youtubeIframe');
+            if (existingIframe) existingIframe.remove();
 
-window.addEventListener('load', function() {
-  const savedScroll = localStorage.getItem('scrollPosition');
-  if (savedScroll) {
-    setTimeout(() => {
-      window.scrollTo({ top: parseInt(savedScroll), behavior: 'auto' });
-      localStorage.removeItem('scrollPosition');
-    }, 100);
-  }
-});
+            document.querySelectorAll('.channel-card').forEach(e => e.classList.remove('active'));
+            card.classList.add('active');
 
-cards.forEach(card=>{
-  card.onclick = ()=>{
-    const ytId = getYouTubeId(card.dataset.stream);
-    if(!ytId) return;
-    localStorage.setItem('scrollPosition', window.scrollY);
-    ytPoster.src = `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg`;
-    ytPoster.style.display = 'block';
-    home.style.display = 'none';
-    playerPage.style.display = 'block';
-    youtubeFrame.src = `https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3&playsinline=1`;
-    youtubeFrame.onload = ()=>{ ytPoster.style.display = 'none'; };
-    history.pushState({playing:true}, "");
-  };
-});
+            const youtubeID = getYouTubeID(url);
 
-window.onpopstate = ()=>{
-  if(playerPage.style.display === "block"){
-    playerPage.style.display = 'none';
-    home.style.display = 'block';
-    youtubeFrame.src = "";
-    ytPoster.style.display = 'none';
-  }
-};
-</script>
+            if (youtubeID) {
+                video.style.display = 'none';
+                const iframe = document.createElement('iframe');
+                iframe.id = 'youtubeIframe';
+                iframe.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+                iframe.src = `https://www.youtube.com/embed/${youtubeID}?autoplay=1&playsinline=1`;
+                playerContainer.appendChild(iframe);
+            } else {
+                video.style.display = 'block';
+                if (Hls.isSupported() && url.includes('.m3u8')) {
+                    hls = new Hls({xhrSetup: (xhr) => {xhr.setRequestHeader('Referer', 'https://www.google.com/');}});
+                    hls.loadSource(url);
+                    hls.attachMedia(video);
+                    hls.on(Hls.Events.MANIFEST_PARSED, (e, data) => {
+                        if (data.levels.length > 1) {
+                            qualityBtn.style.display = 'block';
+                            updateQualityMenu(hls, hls.currentLevel);
+                        }
+                        video.play().catch(()=>{});
+                    });
+                } else { video.src = url; video.play().catch(()=>{}); }
+            }
+        }
 
+        function updateQualityMenu(hlsInstance, selectedIndex) {
+            qualityMenu.innerHTML = '';
+            hlsInstance.levels.forEach((level, index) => {
+                const opt = document.createElement('div');
+                opt.className = 'quality-option' + (index === selectedIndex ? ' selected' : '');
+                opt.innerHTML = `<span class="dot"></span> ${level.height}p`;
+                opt.onclick = () => {
+                    hlsInstance.currentLevel = index;
+                    updateQualityMenu(hlsInstance, index);
+                    qualityMenu.style.display = 'none';
+                };
+                qualityMenu.appendChild(opt);
+            });
+        }
+
+        qualityBtn.onclick = () => { qualityMenu.style.display = (qualityMenu.style.display === 'block') ? 'none' : 'block'; };
+
+        const lines = channelsData.trim().split('\n').filter(l => l.trim() !== "");
+        for (let i = 0; i < lines.length; i += 2) {
+            const name = lines[i].trim();
+            const url = lines[i+1]?.trim();
+            if (name && url) {
+                const card = document.createElement('div');
+                card.className = 'channel-card';
+                card.innerHTML = `<span class="channel-number">${(i/2) + 1}</span><span class="channel-name">${name}</span>`;
+                card.onclick = () => playChannel(url, card);
+                list.appendChild(card);
+                if (i === 0) setTimeout(() => card.click(), 100);
+            }
+        }
+    </script>
 </body>
 </html>
